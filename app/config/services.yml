@@ -1,0 +1,50 @@
+# Learn more about services, parameters and containers at
+# http://symfony.com/doc/current/book/service_container.html
+parameters:
+#    parameter_name: value
+    elastica.index: indash
+
+services:
+#    service_name:
+#        class: AppBundle\Directory\ClassName
+#        arguments: ["@another_service_name", "plain_value", "%parameter_name%"]
+
+#    fos_elastica.client:
+#        class: FOS\ElasticaBundle\Elastica\Client
+#    fos_elastica.index.indash:
+#        class: FOS\ElasticaBundle\Elastica\Index
+#        arguments: ["@fos_elastica.client", "%elastica.index%"]
+#    fos_elastica.index.indash.host:
+#        class: Elastica\Type
+#        arguments: ["@fos_elastica.index.indash", "host"]
+    indash.host.search:
+        class: Elastica\Search
+        arguments: ["@fos_elastica.client.default"]
+        calls:
+            - [ "addIndex", ['@fos_elastica.index.app']]
+            - [ "addType", ['@fos_elastica.index.app.host']]
+    indash.user.search:
+        class: Elastica\Search
+        arguments: ["@fos_elastica.client.default"]
+        calls:
+            - [ "addIndex", ['@fos_elastica.index.app']]
+            - [ "addType", ['@fos_elastica.index.app.user']]   
+    indash.note.search:
+        class: Elastica\Search
+        arguments: ["@fos_elastica.client.default"]
+        calls:
+            - [ "addIndex", ['@fos_elastica.index.app']]
+            - [ "addType", ['@fos_elastica.index.app.note']]            
+    fos_rest.custom_handler.jsonapi:
+        class: AppBundle\Rest\Handler\JsonApiHandler
+        arguments: ["@?logger", "@templating"]
+    fos_rest.custom_view_handler:
+        parent: fos_rest.view_handler.default
+        calls:
+            - ['registerHandler', [ 'jsonapi', ["@fos_rest.custom_handler.jsonapi", 'createResponse'] ] ]
+    app.elastic_user_provider:
+        class: AppBundle\Security\User\ElasticUserProvider      
+        arguments: ["@fos_elastica.client.default", "%default.elastic.user%"]
+    app.token_authenticator:
+        class: AppBundle\Security\TokenAuthenticator
+            

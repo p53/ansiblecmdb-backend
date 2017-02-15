@@ -1,0 +1,14 @@
+{% extends "::base.html.twig" %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('assets/emberjs/assets/vendor.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/emberjs/assets/ember-quickstart.css') }}">    
+{% endblock %}
+
+{% block title %}AppBundle:Default:index{% endblock %}
+
+{% block body %}
+    <script src="{{ asset('assets/emberjs/assets/vendor.js') }}"></script>
+    <script src="{{ asset('assets/emberjs/assets/ember-quickstart.js') }}"></script>
+    <div id="ember-basic-dropdown-wormhole"></div>
+{% endblock %}

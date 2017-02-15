@@ -1,0 +1,34 @@
+{% extends "::base.html.twig" %}
+
+{% block stylesheets %}   
+    <link rel="stylesheet" href="{{ asset('assets/bootstrap/css/bootstrap-theme.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/bootstrap/css/bootstrap.min.css') }}">   
+    <link rel="stylesheet" href="{{ asset('assets/css/signin.css') }}">  
+{% endblock %}
+
+{% block title %}AppBundle:Default:index{% endblock %}
+
+{% block body %}
+    <div class="container">
+
+        {{ form_start(form, { 'attr': { 'class': 'form-signin', 'novalidate': 'novalidate'} }) }}
+            <h2 class="form-signin-heading">Please sign in</h2>
+            {{ form_label(form.user, 'User', { 'label_attr': { 'class': 'sr-only'} }) }}
+            {{ form_errors(form.user) }}
+            {{ form_widget(form.user, { 'attr': { 'class': 'form-control', 'placeholder': 'User'} }) }}
+            {{ form_label(form.password, 'Password', { 'label_attr': { 'class': 'sr-only'} }) }}
+            {{ form_errors(form.password) }}
+            {{ form_widget(form.password, { 'attr': { 'class': 'form-control', 'placeholder': 'Password' } }) }}        
+
+            <div class="checkbox">
+                <label>
+                    {{ form_widget(form.rememberme) }}
+                    Remember-me
+                </label>
+            </div>
+
+            {{ form_widget(form.save, { 'attr': { 'class': 'btn btn-lg btn-primary btn-block' } }) }}
+
+        {{ form_end(form) }}
+    </div>
+{% endblock %}

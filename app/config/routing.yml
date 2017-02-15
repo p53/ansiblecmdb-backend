@@ -1,0 +1,61 @@
+default:
+    path: /
+    defaults: { _controller: AppBundle:Default:index }
+
+token:
+    path: /api/v1/token
+    defaults: { _controller: AppBundle:Authentication:getToken }
+    
+new_token:
+    path: /api/v1/new_token
+    defaults: { _controller: AppBundle:Authentication:refreshToken }
+    
+api_hosts:
+    path: /api/v1/hosts
+    defaults:  { _controller: AppBundle:ApiHost:hosts, filterByTerm: NULL, filterByDate: NULL, sortField: 'ansible_hostname', sort: 'asc', page: 1, size: 50 }
+    methods: [GET, OPTIONS]
+    
+api_host:
+    path: /api/v1/hosts/{hostId}
+    defaults:  { _controller: AppBundle:ApiHost:host, filterByTerm: NULL, filterByDate: NULL, sortField: 'ansible_hostname', sort: 'asc', page: 1, size: 50 }
+    methods: [GET, OPTIONS]
+    
+api_update_host:
+    path: /api/v1/hosts/{resourceId}
+    defaults: { _controller: AppBundle:ApiHost:update }
+    methods: [PATCH, OPTIONS]
+    
+api_notes:
+    path: /api/v1/notes
+    defaults: { _controller: AppBundle:ApiNote:notes }
+    methods: [GET, OPTIONS]
+  
+api_notes_create:
+    path: /api/v1/notes
+    defaults: { _controller: AppBundle:ApiNote:create }
+    methods: [POST, OPTIONS]
+    
+api_note:
+    path: /api/v1/notes/{noteId}
+    defaults: { _controller: AppBundle:ApiNote:note }
+    methods: [GET, OPTIONS]
+    
+api_update_note:
+    path: /api/v1/notes/{noteId}
+    defaults: { _controller: AppBundle:ApiNote:update }
+    methods: [PATCH, OPTIONS]
+    
+api_datehistogram:
+    path: /api/v1/datehistograms
+    defaults:  { _controller: AppBundle:ApiHostStats:datehistograms, filter: NULL, sortField: 'ansible_hostname', sort: 'asc'} 
+    methods: [GET, OPTIONS]
+    
+api_propertyhistogram:
+    path: /api/v1/propertyhistograms
+    defaults:  { _controller: AppBundle:ApiHostStats:propertyhistograms, filterByDate: NULL, property: NULL}     
+    methods: [GET, OPTIONS]
+    
+#rest:
+#    path: /api/v1/{type}
+#    defaults: { _controller: AppBundle:ElasticRest:createApi, type: NULL }
+#    methods:  [POST]

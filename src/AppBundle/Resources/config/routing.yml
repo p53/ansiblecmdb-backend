@@ -1,0 +1,8 @@
+
+index:
+    path:     /index
+    defaults: { _controller: AppBundle:Default:index }
+
+authenticate:
+    path:     /authenticate
+    defaults: { _controller: AppBundle:Authentication:authenticate }
