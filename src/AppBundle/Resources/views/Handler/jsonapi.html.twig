@@ -4,6 +4,14 @@
 {% else %}
 {
     "data": 
+    {% if data['data']|length == 1 %}
+        {% if data['data'][0]['type'] is defined %}
     {{ data['data'][0]|json_encode(constant('JSON_PRETTY_PRINT'))|raw }}
+        {% else %}
+    [{{ data['data'][0]|json_encode(constant('JSON_PRETTY_PRINT'))|raw }}]
+        {% endif %}
+    {% else %}
+    []    
+    {% endif %}
 }
 {% endif %}
