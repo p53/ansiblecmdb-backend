@@ -114,6 +114,7 @@ class ApiHostController extends FOSRestController
                 
         $filterByDate = $request->query->get('filterByDate'); 
         $filterByTerm = $request->query->get('filterByTerm');
+        $staticItem = $request->query->get('static');
         $sortField = $request->query->get('sortField');
         $sort = $request->query->get('sort');
         $page = $request->query->get('page');
@@ -139,8 +140,15 @@ class ApiHostController extends FOSRestController
 
             $hostQuery->setPostFilter($dateFilter);
         }
+
+        if ($staticItem)
+        {
+            $staticFilter = new Filter\Term([ 'static' => $staticItem ]);
+            $hostQuery->setPostFilter($staticFilter);
+        }
         
-        if ($filterByTerm) {
+        if ($filterByTerm) 
+        {
             $queryString= new QueryString($filterByTerm);
             $hostQuery->setQuery($queryString);
         }
@@ -151,7 +159,7 @@ class ApiHostController extends FOSRestController
         
         $results = $search->search($hostQuery)->getResults();  
 
-        $resultsArray = [];
+        $resultsArray['data'] = [];
         
         foreach($results as $result)
         {
@@ -235,5 +243,57 @@ class ApiHostController extends FOSRestController
         $view = $this->view($results, 200)->setFormat("jsonapi");
        
         return $this->handleView($view);
-    }    
+    }
+    
+    public function deleteAction(Request $request, $resourceId)
+    {
+        $data = json_decode($request->getContent(), true);
+        
+        $client = $this->get('fos_elastica.client.default');
+        $elasticIndashIndex = $client->getIndex('indash');
+        $elasticType = $elasticIndashIndex->getType('host');
+            
+        $all = $data['data']['attributes']['all'];
+                
+        if ($all) 
+        {
+            $productUuid = $data['data']['attributes']['ansible_product_uuid'];
+            $machineId = $data['data']['attributes']['ansible_machine_id'];
+            
+            $search = $this->get('indash.host.search');
+            $query = new Query\Filtered();
+            $boolFilter = new Filter\BoolFilter();
+
+            $productUuidFilter = new Filter\Term(['ansible_product_uuid' => $productUuid]);
+            $machineIdFilter = new Filter\Term(['ansible_machine_id' => $machineId]);
+
+            $boolFilter->addMust(array($productUuidFilter, $machineIdFilter));
+
+            $query->setFilter($boolFilter);
+
+            $results = $search->search($query)->getResults();
+            
+            foreach($results as $hostDoc)
+            {
+                $elasticType->deleteById($hostDoc->getId());
+            }
+            
+            $elasticIndashIndex->refresh();
+            
+            $results['data'] = [];
+
+            $view = $this->view($results, 204)->setFormat("jsonapi");
+        }
+        else
+        {
+            $elasticType->deleteById($resourceId);
+            $elasticIndashIndex->refresh();
+
+            $results['data'] = [];
+
+            $view = $this->view($results, 204)->setFormat("jsonapi");
+        }
+        
+        return $this->handleView($view);
+    }
 }

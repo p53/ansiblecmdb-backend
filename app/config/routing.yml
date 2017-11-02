@@ -12,18 +12,28 @@ new_token:
     
 api_hosts:
     path: /api/v1/hosts
-    defaults:  { _controller: AppBundle:ApiHost:hosts, filterByTerm: NULL, filterByDate: NULL, sortField: 'ansible_hostname', sort: 'asc', page: 1, size: 50 }
+    defaults:  { _controller: AppBundle:ApiHost:hosts }
+    methods: [GET, OPTIONS]
+    
+api_items:
+    path: /api/v1/items
+    defaults:  { _controller: AppBundle:ApiItem:items }
     methods: [GET, OPTIONS]
     
 api_host:
     path: /api/v1/hosts/{hostId}
-    defaults:  { _controller: AppBundle:ApiHost:host, filterByTerm: NULL, filterByDate: NULL, sortField: 'ansible_hostname', sort: 'asc', page: 1, size: 50 }
+    defaults:  { _controller: AppBundle:ApiHost:host }
     methods: [GET, OPTIONS]
     
 api_update_host:
     path: /api/v1/hosts/{resourceId}
     defaults: { _controller: AppBundle:ApiHost:update }
     methods: [PATCH, OPTIONS]
+    
+api_delete_host:
+    path: /api/v1/hosts/{resourceId}
+    defaults: { _controller: AppBundle:ApiHost:delete }
+    methods: [DELETE, OPTIONS]
     
 api_notes:
     path: /api/v1/notes
