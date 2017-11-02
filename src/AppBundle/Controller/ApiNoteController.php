@@ -163,7 +163,7 @@ class ApiNoteController extends FOSRestController
         $productUuidFilter = new Filter\Term(['ansible_product_uuid' => $productUuid]);
         $machineIdFilter = new Filter\Term(['ansible_machine_id' => $machineId]);
 
-        $boolFilter->addMust(array($productUuidFilter,$machineIdFilter));
+        $boolFilter->addMust(array($productUuidFilter, $machineIdFilter));
         
         $query->setFilter($boolFilter);
 
