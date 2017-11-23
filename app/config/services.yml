@@ -44,7 +44,8 @@ services:
             - ['registerHandler', [ 'jsonapi', ["@fos_rest.custom_handler.jsonapi", 'createResponse'] ] ]
     app.elastic_user_provider:
         class: AppBundle\Security\User\ElasticUserProvider      
-        arguments: ["@fos_elastica.client.default", "%default.elastic.user%"]
+        arguments: ["@indash.user.search", "@fos_elastica.index.app", "@fos_elastica.index.app.user", "%default.elastic.user%"]
     app.token_authenticator:
         class: AppBundle\Security\TokenAuthenticator
-            
+        arguments: ["@app.elastic_user_provider"]
+

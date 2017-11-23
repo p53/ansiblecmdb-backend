@@ -9,9 +9,16 @@ use Symfony\Component\Security\Guard\AbstractGuardAuthenticator;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Core\User\UserProviderInterface;
+use DateTime;
 
 class TokenAuthenticator extends AbstractGuardAuthenticator
 {
+
+    public function __construct(UserProviderInterface $userProvider)
+    {
+        $this->userProvider = $userProvider;
+    }
+
     /**
      * Called on every request. Return whatever credentials you want,
      * or null to stop authentication.
@@ -19,27 +26,21 @@ class TokenAuthenticator extends AbstractGuardAuthenticator
     public function getCredentials(Request $request)
     {
         $credentials = [];
-        
-        if (!$token = $request->headers->get('X-AUTH-TOKEN'))
-        {
+
+        if (!$token = $request->headers->get('X-AUTH-TOKEN')) {
             // no token? Return null and no other methods will be called
             $username = $request->get('username');
             $password = $request->get('password');
-            
-            if ($username && $password)
-            {
+
+            if ($username && $password) {
                 $credentials = [
                     'username' => $username,
                     'password' => $password
                 ];
-            } 
-            else
-            {
+            } else {
                 return;
             }
-        }
-        else
-        {
+        } else {
             $credentials = ['token' => $token];
         }
 
@@ -50,15 +51,12 @@ class TokenAuthenticator extends AbstractGuardAuthenticator
     public function getUser($credentials, UserProviderInterface $userProvider)
     {
         $elasticUser = null;
-        
-        if (key_exists('token', $credentials))
-        {
-            $token = $credentials['token'];
+
+        if (key_exists('token', $credentials)) {
+            $token       = $credentials['token'];
             $elasticUser = $userProvider->loadUserByToken($token);
-        }
-        else
-        {
-            $username = $credentials['username'];
+        } else {
+            $username    = $credentials['username'];
             $elasticUser = $userProvider->loadUserByUsername($username);
         }
 
@@ -70,18 +68,33 @@ class TokenAuthenticator extends AbstractGuardAuthenticator
     public function checkCredentials($credentials, UserInterface $user)
     {
         $checkResult = false;
-        
+
         // check credentials - e.g. make sure the password is valid
         // no credential check is needed in this case
-        if (key_exists('token', $credentials))
-        {
-            $checkResult = true;
+        if (key_exists('token', $credentials)) {
+            if (!$this->tokenIsExpired($user, $this->userProvider)) {
+                if ($this->tokenNeedsRefresh($user, $this->userProvider)) {
+                    $currentTime = new DateTime();
+                    $currentTime->setTimezone('UTC');
+
+                    $firstPart = $currentTime->format("Y-m-d");
+                    $secPart   = $currentTime->format("H:i:s.u");
+
+                    $user->setTokenDate($firstPart."T".$secPart);
+                    $this->userProvider->saveUser($user);
+                }
+                
+                $checkResult = true;
+            }
+        } elseif ($credentials['password']) {
+            $sentPass   = $this->userProvider->encryptPassword($credentials['password']);
+            $passFromDb = $user->getPassword();
+
+            if ($sentPass == $passFromDb) {
+                $checkResult = true;
+            }
         }
-        elseif ($credentials['password'] == $user->getPassword())
-        {            
-            $checkResult = true;
-        }
-        
+
         // return true to cause authentication success
         return $checkResult;
     }
@@ -101,7 +114,7 @@ class TokenAuthenticator extends AbstractGuardAuthenticator
             // $this->translator->trans($exception->getMessageKey(), $exception->getMessageData())
         );
 
-        return new JsonResponse($data, 403);
+        return new JsonResponse($data, 401);
     }
 
     /**
@@ -120,5 +133,51 @@ class TokenAuthenticator extends AbstractGuardAuthenticator
     public function supportsRememberMe()
     {
         return false;
+    }
+
+    public function tokenIsExpired(UserInterface $user, UserProviderInterface $userProvider)
+    {
+        $currentTime = new DateTime();
+        $currentTime->setTimezone('UTC');
+
+        if ($tokenDate = $user->getTokenDate()) {
+            $tokenDateObj   = DateTime::createFromFormat('Y-m-d\TH:i:s.u', $tokenDate);
+            $timeDiff       = $currentTime->diff($tokenDateObj);
+            $inactivityTime = $userProvider->getDefaultUser()['inactivity_time'];
+
+            $timeDiffMinutes = $this->toSeconds($timeDiff)/60;
+
+            return ($timeDiffMinutes > $inactivityTime) ? true : false;
+        } else {
+            return true;
+        }
+    }
+
+    public function tokenNeedsRefresh(UserInterface $user, UserProviderInterface $userProvider)
+    {
+        $currentTime = new DateTime();
+        $currentTime->setTimezone('UTC');
+
+        if ($tokenDate = $user->getTokenDate()) {
+            $tokenDateObj   = DateTime::createFromFormat('Y-m-d\TH:i:s.u', $tokenDate);
+            $timeDiff       = $currentTime->diff($tokenDateObj);
+            $inactivityTime = $userProvider->getDefaultUser()['inactivity_time'];
+
+            $timeDiffMinutes = $this->toSeconds($timeDiff)/60;
+
+            return (($timeDiffMinutes < $inactivityTime) && $timeDiffMinutes > 1) ? true : false;
+        } else {
+            return true;
+        }
+    }
+
+    public function toSeconds(\DateInterval $dateInterval)
+    {
+        return ($dateInterval->y * 365 * 24 * 60 * 60) +
+            ($dateInterval->m * 30 * 24 * 60 * 60) +
+            ($dateInterval->d * 24 * 60 * 60) +
+            ($dateInterval->h * 60 * 60) +
+            ($dateInterval->i * 60) +
+            $dateInterval->s;
     }
 }

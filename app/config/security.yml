@@ -15,8 +15,8 @@ security:
 
         main:
             # activate different ways to authenticate
-            pattern: ^/(_(profiler|wdt)|css|images|js/
-            methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+            pattern: .*
+            methods: [GET, POST, PUT, PATCH, DELETE]
             guard:
                 authenticators:
                     - app.token_authenticator
