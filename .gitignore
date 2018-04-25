@@ -45,4 +45,6 @@
 **/Entity/*~
 nbproject/
 .directory
-
+.project
+.settings
+.buildpath
