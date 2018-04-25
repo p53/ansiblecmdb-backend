@@ -22,7 +22,7 @@ class ElasticUser implements UserInterface, EquatableInterface
         $this->username = $username;
         $this->password = $password;
         $this->roles = $roles;
-        $this->settings = $settings;
+        $this->settings = (object)$settings;
         $this->token = $token;
         $this->tokenDate = $tokenDate;
     }

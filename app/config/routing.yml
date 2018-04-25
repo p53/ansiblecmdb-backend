@@ -10,6 +10,16 @@ new_token:
     path: /api/v1/new_token
     defaults: { _controller: AppBundle:Authentication:refreshToken }
     
+api_user:
+    path: /api/v1/users/{userId}
+    defaults:  { _controller: AppBundle:ApiUser:user }
+    methods: [GET, OPTIONS]
+    
+api_update_user:
+    path: /api/v1/users/{userId}
+    defaults: { _controller: AppBundle:ApiUser:update }
+    methods: [PATCH, OPTIONS]
+    
 api_hosts:
     path: /api/v1/hosts
     defaults:  { _controller: AppBundle:ApiHost:hosts }

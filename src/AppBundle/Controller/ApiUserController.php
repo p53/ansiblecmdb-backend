@@ -12,183 +12,191 @@ use Elastica\QueryBuilder;
 use Elastica\Document;
 use DateTime;
 
-class ApiNoteController extends FOSRestController
+class ApiUserController extends FOSRestController
 {
-    public function noteAction(Request $request, $noteId)
+
+    public function userAction(Request $request, $userId)
     {
-        $query = new Query();
-        
-        $search = $this->get('indash.note.search');
- 
-        if ($noteId)
-        {
-            $queryString= new QueryString("_id: $noteId");
+        $userProvider = $this->get('app.elastic_user_provider');
+        $query        = new Query();
+
+        $search = $this->get('indash.user.search');
+
+        if ($userId) {
+            if ($userId == 'me' && $request->headers->get('X-AUTH-TOKEN')) {
+                $token  = $request->headers->get('X-AUTH-TOKEN');
+                $user   = $userProvider->loadUserByToken($token);
+                $userId = $user->getElasticDocId();
+            }
+
+            $queryString = new QueryString("_id: $userId");
+
             $query->setQuery($queryString);
         }
-        
+
         $results = $search->search($query)->getResults();
-        
+
         $resultsArray = [];
-        
-        foreach($results as $result)
-        {
+
+        foreach ($results as $result) {
             $resultArray = [];
 
-            $resultArray['type'] = $result->getType();
-            $resultArray['_id'] = $result->getId();
+            $resultArray['type']       = $result->getType();
+            $resultArray['_id']        = $result->getId();
             $resultArray['attributes'] = $result->getSource();
 
             $resultsArray['data'][] = $resultArray;
         }
-        
+
         $view = $this->view($resultsArray, 200)->setFormat("jsonapi");
-        return $this->handleView($view); 
+        return $this->handleView($view);
     }
-    
-    public function notesAction(Request $request)
+
+    public function usersAction(Request $request)
     {
         #$elasticHostType = $this->get('fos_elastica.index.indash.host');
-        $results = [];
+        $results   = [];
         $hostQuery = new Query();
-                
-        $filterByDate = $request->query->get('filterByDate'); 
+
+        $filterByDate = $request->query->get('filterByDate');
         $filterByTerm = $request->query->get('filterByTerm');
-        $sortField = $request->query->get('sortField');
-        $sort = $request->query->get('sort');
-        $page = $request->query->get('page');
-        $size = $request->query->get('size');
-        $from = ($page-1) * $size;  
-        
+        $sortField    = $request->query->get('sortField');
+        $sort         = $request->query->get('sort');
+        $page         = $request->query->get('page');
+        $size         = $request->query->get('size');
+        $from         = ($page - 1) * $size;
+
         $size = 10000;
         $from = 0;
-        
+
         $search = $this->get('indash.host.search');
-        
-        if ($filterByDate)
-        {
+
+        if ($filterByDate) {
             $dateFilter = new Filter\Range();
 
             $dateFilter->addField(
-                "indash_timestamp_utc", 
+                "indash_timestamp_utc",
                 array(
-                    "gte" => $filterByDate,
-                    "lte" => $filterByDate
+                "gte" => $filterByDate,
+                "lte" => $filterByDate
                 )
             );
 
             $hostQuery->setPostFilter($dateFilter);
         }
 
-        if ($hostId)
-        {
-            $queryString= new QueryString("_id: $hostId");
-            $hostQuery->setQuery($queryString);
-        }
-        
-        if ($filterByTerm) {
-            $queryString= new QueryString($filterByTerm);
+        if ($hostId) {
+            $queryString = new QueryString("_id: $hostId");
             $hostQuery->setQuery($queryString);
         }
 
-        !$from ? :$hostQuery->setFrom($from);
-        !$size ? :$hostQuery->setSize($size);
-        !($sortField && $sort) ? :$hostQuery->setSort([$sortField => $sort]);
-        
-        $results = $search->search($hostQuery)->getResults();  
-                    
+        if ($filterByTerm) {
+            $queryString = new QueryString($filterByTerm);
+            $hostQuery->setQuery($queryString);
+        }
+        !$from ? : $hostQuery->setFrom($from);
+        !$size ? : $hostQuery->setSize($size);
+        !($sortField && $sort) ? : $hostQuery->setSort([$sortField => $sort]);
+
+        $results = $search->search($hostQuery)->getResults();
+
         $view = $this->view($results, 200)->setFormat("jsonapi");
-       
+
         return $this->handleView($view);
     }
-    
-    public function updateAction(Request $request, $noteId = null)
+
+    public function updateAction(Request $request, $userId)
     {
-        $data = json_decode($request->getContent(), true);
+        $userProvider = $this->get('app.elastic_user_provider');
+        $data         = json_decode($request->getContent(), true);
 
-        $productUuid = $data['data']['attributes']['ansible_product_uuid'];
-        $machineId = $data['data']['attributes']['ansible_machine_id'];
-        $note = $data['data']['attributes']['note'];
-        $noteId = $data['data']['_id'];
-        
+        $user   = $data['data']['attributes'];
+        $userId = $data['data']['_id'];
+
         $client = $this->get('fos_elastica.client.default');
-        
-        $elasticIndashIndex = $client->getIndex('indash');
-        $elasticNoteType = $elasticIndashIndex->getType('note');
-        $elasticHostType = $elasticIndashIndex->getType('host');
 
-        $noteData = [
-            'note' => $note
-        ];
-                
-        $doc = new Document($noteId, $noteData);
-        $response = $elasticNoteType->addDocument($doc);
+        $elasticIndashIndex = $client->getIndex('indash');
+        $elasticUserType    = $elasticIndashIndex->getType('user');
+
+        $oldUser           = $userProvider->loadUserByUsername($user['username']);
+        $oldPassword       = $oldUser->getPassword();
+        $user['token']     = $oldUser->getToken();
+        $user['tokenDate'] = $oldUser->getTokenDate();
+        $newPassword       = $userProvider->encryptPassword($user['password']);
+
+        if ($oldPassword != $newPassword) {
+            $user['password'] = $newPassword;
+        } else {
+            $user['password'] = $oldPassword;
+        }
+
+        $doc      = new Document($userId, $user);
+        $response = $elasticUserType->addDocument($doc);
         $elasticIndashIndex->refresh();
-        
-        $noteResults['data'][] = $data['data'];
-        
-        $view = $this->view($noteResults, 200)->setFormat("jsonapi");
-       
-        return $this->handleView($view);        
+
+        $userResults['data'][] = $data['data'];
+
+        $view = $this->view($userResults, 200)->setFormat("jsonapi");
+
+        return $this->handleView($view);
     }
-    
+
     public function createAction(Request $request)
     {
-        $allDocs = [];
-        $data = json_decode($request->getContent(), true);
+        $allDocs     = [];
+        $data        = json_decode($request->getContent(), true);
         #$hostId = $data['attributes']['hostId'];
         $productUuid = $data['data']['attributes']['ansible_product_uuid'];
-        $machineId = $data['data']['attributes']['ansible_machine_id'];
-        $note = $data['data']['attributes']['note'];
-        
+        $machineId   = $data['data']['attributes']['ansible_machine_id'];
+        $user        = $data['data']['attributes']['user'];
+
         $client = $this->get('fos_elastica.client.default');
-        
+
         $elasticIndashIndex = $client->getIndex('indash');
-        $elasticNoteType = $elasticIndashIndex->getType('note');
-        $elasticHostType = $elasticIndashIndex->getType('host');
+        $elasticUserType    = $elasticIndashIndex->getType('user');
+        $elasticHostType    = $elasticIndashIndex->getType('host');
 
-        $noteData = [
-            'note' => $note
+        $userData = [
+            'user' => $user
         ];
-                
-        $doc = new Document('', $noteData);
-        $response = $elasticNoteType->addDocument($doc);
-        $elasticIndashIndex->refresh();
-        
-        $newNoteId = $response->getData()['_id'];
 
-        $search = $this->get('indash.host.search');
-        $query = new Query\Filtered();
+        $doc      = new Document('', $userData);
+        $response = $elasticUserType->addDocument($doc);
+        $elasticIndashIndex->refresh();
+
+        $newUserId = $response->getData()['_id'];
+
+        $search     = $this->get('indash.host.search');
+        $query      = new Query\Filtered();
         $boolFilter = new Filter\BoolFilter();
 
         $productUuidFilter = new Filter\Term(['ansible_product_uuid' => $productUuid]);
-        $machineIdFilter = new Filter\Term(['ansible_machine_id' => $machineId]);
+        $machineIdFilter   = new Filter\Term(['ansible_machine_id' => $machineId]);
 
         $boolFilter->addMust(array($productUuidFilter, $machineIdFilter));
-        
+
         $query->setFilter($boolFilter);
 
         $results = $search->search($query)->getResults();
 
-        foreach($results as $hostDoc)
-        {
-            $dataOfHost = $hostDoc->getSource();
-            $dataOfHost['note'] = $newNoteId;
-            
+        foreach ($results as $hostDoc) {
+            $dataOfHost         = $hostDoc->getSource();
+            $dataOfHost['user'] = $newUserId;
+
             $allDocs[] = new \Elastica\Document(
-                            $hostDoc->getId(), 
-                            $dataOfHost
-                        );
+                $hostDoc->getId(), $dataOfHost
+            );
         }
-        
+
         $elasticHostType->addDocuments($allDocs);
         $elasticIndashIndex->refresh();
 
-        $data['data']['_id'] = $newNoteId;
-        
-        $noteResults['data'][] = $data['data'];
-        
-        $view = $this->view($noteResults, 201)->setFormat("jsonapi");
-       
-        return $this->handleView($view);        
+        $data['data']['_id'] = $newUserId;
+
+        $userResults['data'][] = $data['data'];
+
+        $view = $this->view($userResults, 201)->setFormat("jsonapi");
+
+        return $this->handleView($view);
     }
 }
