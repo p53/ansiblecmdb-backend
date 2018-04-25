@@ -136,7 +136,8 @@ class ElasticUserProvider implements UserProviderInterface
         return hash_hmac('sha256', $password, $this->defaultUser['salt']);
     }
 
-    public function getDefaultUser() {
+    public function getDefaultUser()
+    {
         return $this->defaultUser;
     }
 }

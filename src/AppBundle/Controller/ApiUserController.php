@@ -44,6 +44,7 @@ class ApiUserController extends FOSRestController
             $resultArray['type']       = $result->getType();
             $resultArray['_id']        = $result->getId();
             $resultArray['attributes'] = $result->getSource();
+            unset($resultArray['attributes']['password']);
 
             $resultsArray['data'][] = $resultArray;
         }
@@ -124,7 +125,7 @@ class ApiUserController extends FOSRestController
         $user['tokenDate'] = $oldUser->getTokenDate();
         $newPassword       = $userProvider->encryptPassword($user['password']);
 
-        if ($oldPassword != $newPassword) {
+        if ($oldPassword != $newPassword && $user['password'] != '') {
             $user['password'] = $newPassword;
         } else {
             $user['password'] = $oldPassword;

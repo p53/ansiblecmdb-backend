@@ -89,7 +89,7 @@ class TokenAuthenticator extends AbstractGuardAuthenticator
         } elseif ($credentials['password']) {
             $sentPass   = $this->userProvider->encryptPassword($credentials['password']);
             $passFromDb = $user->getPassword();
-
+            
             if ($sentPass == $passFromDb) {
                 $checkResult = true;
             }
