@@ -172,7 +172,7 @@ class ApiHostController extends FOSRestController
             $resultsArray['data'][] = $resultArray;
         }
 
-        $view = $this->view($resultsArray, 200)->setFormat("jsonapi");
+        $view = $this->view($resultsArray, 200)->setFormat("jsonapi_long");
 
         return $this->handleView($view);
     }

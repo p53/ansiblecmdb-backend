@@ -96,7 +96,7 @@ class ApiNoteController extends FOSRestController
         
         $results = $search->search($hostQuery)->getResults();  
                     
-        $view = $this->view($results, 200)->setFormat("jsonapi");
+        $view = $this->view($results, 200)->setFormat("jsonapi_long");
        
         return $this->handleView($view);
     }

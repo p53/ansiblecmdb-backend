@@ -28,7 +28,7 @@ class JsonApiHandler {
     public function createResponse(ViewHandler $handler, View $view, Request $request, $format)
     {
         try {
-            $content = $this->renderContent($view);
+            $content = $this->renderContent($view, $format);
             $code = $view->getStatusCode();
             
             if(!$code)
@@ -50,12 +50,13 @@ class JsonApiHandler {
         return $response;
     }
     
-    public function renderContent($view)
+    public function renderContent($view, $format)
     {
         $data = $view->getData();
         $tplVar = $view->getTemplateVar() ? $view->getTemplateVar() : 'data';
-        
-        return $this->templatingService->render('AppBundle:Handler:jsonapi.html.twig', array($tplVar => $data));
+        $tpl = "AppBundle:Handler:" . $format . ".html.twig";
+
+        return $this->templatingService->render($tpl, array($tplVar => $data));
     }
     
 }

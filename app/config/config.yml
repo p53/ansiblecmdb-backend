@@ -71,6 +71,7 @@ fos_rest:
         formats:
             json: true
             jsonapi: true
+            jsonapi_long: true
         templating_formats:
             html: false
         force_redirects:
@@ -80,6 +81,7 @@ fos_rest:
         mime_types:
             json: ['application/json', 'application/x-json']
             jsonapi: ['application/vnd.api+json']
+            jsonapi_long: ['application/vnd.api+json']
 
 fos_elastica:
     clients:
