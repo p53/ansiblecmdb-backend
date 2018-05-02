@@ -38,53 +38,62 @@ class ApiItemController extends FOSRestController
         $elasticIndashIndex = $client->getIndex('indash');
         $elasticType = $elasticIndashIndex->getType('host');
 
+        if (!$filterByTerm) {
+            $filterByTerm = "*";
+        }
+
         $query = 
         [
             "size" => 0,
             "from" => $from,
-            "filter" => 
+            "aggs" =>
             [
-                "query" => 
-                [
-                    "match_all" => []
-                ]
-            ], 
-            "aggs" => 
-            [
-                "product" => 
-                [
-                    "terms" => 
+                "narrow" => [
+
+                    "filter" =>
                     [
-                        "field" => "$sortField",
-                        "size" => $size
-                    ],
-                    "aggs" => 
-                    [
-                        "machine" => 
+                        "query_string" =>
                         [
-                            "terms" => 
+                            "query" => "$filterByTerm"
+                        ]
+                    ],
+                    "aggs" => [
+                        "product" =>
+                        [
+                            "terms" =>
                             [
-                                "field" => "ansible_product_uuid"
+                                "field" => "$sortField",
+                                "size" => $size
                             ],
-                            "aggs" => 
+                            "aggs" =>
                             [
-                                "hosts" => 
+                                "machine" =>
                                 [
-                                    "top_hits" => 
+                                    "terms" =>
                                     [
-                                        "_source" => 
+                                        "field" => "ansible_product_uuid"
+                                    ],
+                                    "aggs" =>
+                                    [
+                                        "hosts" =>
                                         [
-                                            "include" => 
+                                            "top_hits" =>
                                             [
-                                                "*"
+                                                "_source" =>
+                                                [
+                                                    "include" =>
+                                                    [
+                                                        "*"
+                                                    ]
+                                                ]
                                             ]
                                         ]
                                     ]
                                 ]
                             ]
                         ]
-                    ]  
-                ]      
+                    ]
+                ]
             ]
         ];
         
@@ -93,7 +102,7 @@ class ApiItemController extends FOSRestController
         $response = $client->request($path, ElasticaRequest::GET, $query);
         $results = $response->getData();
 
-        foreach($results['aggregations']['product']['buckets'] as $item)
+        foreach($results['aggregations']['narrow']['product']['buckets'] as $item)
         {
             $result = $item['machine']['buckets'][0]['hosts']['hits']['hits'][0];
             $resultArray = [];
