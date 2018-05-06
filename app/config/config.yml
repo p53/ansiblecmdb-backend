@@ -62,7 +62,7 @@ snc_redis:
         default:
             type: predis
             alias: default
-            dsn: redis://localhost
+            dsn: redis://ansiblecmdb-redis-service
             
 fos_rest:
     service:
@@ -85,7 +85,7 @@ fos_rest:
 
 fos_elastica:
     clients:
-        default: { host: elastic, port: 9200 }
+        default: { host: ansiblecmdb-elastic-service, port: 9200 }
     indexes:
         app:
             finder: ~
