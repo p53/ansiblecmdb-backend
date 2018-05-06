@@ -48,3 +48,5 @@ nbproject/
 .project
 .settings
 .buildpath
+.app_env
+.composer
